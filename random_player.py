@@ -5,6 +5,7 @@ from hand import Hand
 
 
 class ACTION(Enum):
+    CHECK = 0
     RAISE = 1
     CALL = 2
     FOLD = 3
@@ -33,3 +34,4 @@ class RandomPlayer:
                 return ACTION.RAISE, amount
             else:
                 return action, 0
+
