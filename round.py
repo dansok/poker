@@ -1,21 +1,35 @@
 from deck import Deck
-from random_player import RandomPlayer
+from random_player import RandomPlayer, ACTION
 
 
-class RandomEnv:
-    def __init__(self):
-        self.deck = Deck()
-        self.players = [RandomPlayer(i, [self.deck.draw(), self.deck.draw()]) for i in range(5)]
-        self.community_cards = [self.deck.draw(), self.deck.draw(), self.deck.draw()]
-        self.pot = 0
+class Round:
+    def __init__(
+        self,
+        deck,
+        players,
+        community_cards,
+        pot,
+    ):
+        self.deck = deck
+        self.players = players
+        self.community_cards = community_cards
+        self.pot = pot
         self.max_raise = self.players[0].money
         self.num_folds = len(self.players)
+        self.folds = {}
 
     def play_round(self):
         max_raise = self.max_raise
 
         for player in self.players:
+            if player in self.folds:
+                continue
+
             action = player.act(max_raise=self.max_raise)
+
+            if action[0] == ACTION.FOLD:
+                self.folds |= {player}
+
             self.pot += action[1]
             max_raise = min(action[2], self.max_raise)
 
@@ -34,5 +48,12 @@ class RandomEnv:
 
         self.play_round()
 
-    # def run(self):
-    #     while
+    def is_game_over(self):
+        return len(self.folds) == len(self.players)
+
+    def run(self):
+        self.play_round_1()
+
+        if self.is_game_over():
+            pass
+
