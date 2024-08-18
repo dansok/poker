@@ -21,7 +21,6 @@ class RandomPlayer:
         self.hand = Hand(hand)  # Initial hand dealt to the player (two cards)
         self.money = 1_000
 
-
     def act(self, max_raise=0):
         if self.money == 0:
             return ACTION.FOLD, 0, 0
