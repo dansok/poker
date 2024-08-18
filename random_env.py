@@ -36,10 +36,7 @@ class RandomEnv:
         self.play_round()
 
     def run(self):
-        self.deck = None
-        self.players = None
-        self.community_cards = None
-        self.reset()
+        pass
 
     def reset(self):
         self.deck = Deck()
