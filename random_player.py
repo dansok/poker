@@ -4,9 +4,6 @@ from enum import Enum
 from hand import Hand
 
 
-MIN_RAISE = 25
-
-
 class ACTION(Enum):
     RAISE = 1
     CALL = 2
@@ -24,6 +21,7 @@ class RandomPlayer:
         self.hand = Hand(hand)  # Initial hand dealt to the player (two cards)
         self.money = 1_000
 
+
     def act(self, max_raise=0):
         if self.money == 0:
             return ACTION.FOLD, 0, 0
@@ -37,4 +35,3 @@ class RandomPlayer:
             return ACTION.RAISE, amount, self.money
 
         return action, 0, self.money
-
