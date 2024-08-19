@@ -38,7 +38,7 @@ class RandomEnv:
 
     def check_game_finished(self):
         for player in self.players:
-            if player.last_action != ACTION.CHECK and player.last_action != ACTION.FOLD:
+            if player.last_action != ACTION.FOLD:
                 return False
         return True
 
