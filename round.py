@@ -48,12 +48,12 @@ class Round:
 
         self.play_round()
 
-    def is_game_over(self):
+    def is_round_over(self):
         return len(self.folds) == len(self.players)
 
     def run(self):
         self.play_round_1()
 
-        if self.is_game_over():
+        if self.is_round_over():
             pass
 

@@ -34,5 +34,5 @@ class RandomEnv:
 
         self.play_round()
 
-    # def run(self):
-    #     while
+    def run(self):
+        while
