@@ -1,15 +1,17 @@
 from deck import Deck
+
 from random_player import RandomPlayer
 
 
 class RandomEnv:
     def __init__(self):
-        self.deck = Deck()
-        self.players = [RandomPlayer(i, [self.deck.draw(), self.deck.draw()]) for i in range(5)]
-        self.community_cards = [self.deck.draw(), self.deck.draw(), self.deck.draw()]
-        self.pot = 0
-        self.max_raise = self.players[0].money
-        self.num_folds = len(self.players)
+        self.num_folds = None
+        self.max_raise = None
+        self.pot = None
+        self.community_cards = None
+        self.players = None
+        self.deck = None
+        self.reset()
 
     def play_round(self):
         max_raise = self.max_raise
@@ -35,4 +37,12 @@ class RandomEnv:
         self.play_round()
 
     def run(self):
-        while
+        pass
+
+    def reset(self):
+        self.deck = Deck()
+        self.players = [RandomPlayer(i, [self.deck.draw(), self.deck.draw()]) for i in range(5)]
+        self.community_cards = [self.deck.draw(), self.deck.draw(), self.deck.draw()]
+        self.pot = 0
+        self.max_raise = self.players[0].money
+        self.num_folds = len(self.players)

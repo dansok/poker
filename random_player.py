@@ -4,9 +4,6 @@ from enum import Enum
 from hand import Hand
 
 
-MIN_RAISE = 25
-
-
 class ACTION(Enum):
     RAISE = 1
     CALL = 2
@@ -37,4 +34,3 @@ class RandomPlayer:
             return ACTION.RAISE, amount, self.money
 
         return action, 0, self.money
-
