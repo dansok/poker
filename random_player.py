@@ -4,11 +4,14 @@ from enum import Enum
 from hand import Hand
 
 
+MIN_RAISE = 25
+
+
 class ACTION(Enum):
-    CHECK = 0
     RAISE = 1
     CALL = 2
-    FOLD = 3
+    CHECK = 3
+    FOLD = 4
 
     @staticmethod
     def select_random():
@@ -21,17 +24,24 @@ class RandomPlayer:
         self.hand = Hand(hand)  # Initial hand dealt to the player (two cards)
         self.money = 1_000
 
-    def act(self):
+    def act(self, current_raise = 0):
         if self.money == 0:
-            return ACTION.FOLD, 0
-        else:
-            action = ACTION.select_random()
+            return ACTION.FOLD, 0, 0
 
-            if action == ACTION.RAISE:
-                amount = random.randint(1, self.money)
-                self.money -= amount
+        action = ACTION.select_random()
+        if action == ACTION.CALL and self.money < current_raise:
+            action = ACTION.CHECK
 
-                return ACTION.RAISE, amount
-            else:
-                return action, 0
+        if action == ACTION.RAISE:
+            amount = random.randint(1, self.money)
+            self.money -= amount
+            return ACTION.RAISE, amount, self.money
+        elif action == ACTION.CALL:
+            amount = current_raise
+            self.money -= amount
+            return ACTION.RAISE, amount, self.money
+        elif action == ACTION.FOLD:
+            return ACTION.FOLD, 0, self.money
+
+        return action, 0, self.money
 

@@ -1,5 +1,9 @@
+from random_env import RandomEnv
+
+
 def main():
-    print('aaaaaa')
+    env = RandomEnv()
+    env.play()
 
 if __name__ == "__main__":
     main()
