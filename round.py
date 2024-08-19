@@ -1,5 +1,4 @@
-from deck import Deck
-from random_player import RandomPlayer, ACTION
+from random_player import ACTION
 
 
 class Round:
