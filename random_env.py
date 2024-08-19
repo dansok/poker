@@ -1,8 +1,6 @@
 from deck import Deck
 from random_player import RandomPlayer, ACTION
 
-
-
 class RandomEnv:
     def __init__(self):
         self.deck = None
