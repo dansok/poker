@@ -9,34 +9,24 @@ class RandomEnv:
         self.deck = None
         self.players = None
         self.community_cards = None
-        self.pot = None
+        self.pot = 0
         self.reset()
         self.play_count = 0
-
-    # def play_round(self):
-    #     max_raise = self.calc_max_raise();
-    #
-    #     for player in self.players:
-    #         action = player.act(max_raise=max_raise)
-    #         self.pot += action[1]
-    #         max_raise = min(action[2], self.max_raise)
-    #
-    #     self.max_raise = min(self.max_raise, max_raise)
 
     def play_round(self):
         for player in self.players:
             player.prepare_for_round()
         max_bet_for_round = self.calc_max_bet_for_round()
-        pot = 0
+        self.pot = 0
         current_bet = 0
         while not self.round_finished(current_bet):
             for player in self.players:
-                action_result = player.act(current_bet, max_bet_for_round)
-                pot += action_result.contribution
-                if action_result.action == ACTION.RAISE:
-                    current_bet += action_result.contribution
-                if action_result.action == ACTION.FOLD and self.all_but_one_folded():
-                    break
+                if player.last_action != ACTION.FOLD:
+                    action_result = player.act(current_bet, max_bet_for_round)
+                    self.pot += action_result.contribution
+                    current_bet = max(current_bet, player.total_contribution)
+                    if action_result.action == ACTION.FOLD and self.all_but_one_folded():
+                        break
 
     # We consider round finished when all players that didn't fold contributed amount equal to current_bet
     def round_finished(self, current_bet):
@@ -45,7 +35,7 @@ class RandomEnv:
         for player in self.players:
             if player.last_action != ACTION.FOLD and player.total_contribution != current_bet:
                 return False
-        return True
+        return current_bet > 0
 
     def all_but_one_folded(self):
         number_of_folds = 0
@@ -72,6 +62,8 @@ class RandomEnv:
         for _ in range(3):
             self.community_cards.append(self.deck.draw())
             self.play_round()
+            print(f'state as of the end of round {_}')
+            self.render()
 
         winners = []
         for player in self.players:
@@ -89,3 +81,13 @@ class RandomEnv:
         self.players = [RandomPlayer(i, [self.deck.draw(), self.deck.draw()]) for i in range(5)]
         self.community_cards = [self.deck.draw(), self.deck.draw()] # third card will be appended at the beginning of the first round
         self.pot = 0
+
+    def render(self):
+        print(f'pot: {self.pot}')
+        for player in self.players:
+            print(f'player {player.player_id}')
+            print(f'cards: {player.hand.cards}')
+            print(f'money: {player.money}')
+            print(f'bets: {player.bets}')
+            print(f'actions: {player.actions}')
+            print('=================================')
