@@ -44,8 +44,6 @@ class RandomEnv:
                 number_of_folds += 1
         return number_of_folds == len(self.players) - 1
 
-
-
     def calc_max_bet_for_round(self):
         result = None
         for player in self.players:
@@ -79,15 +77,19 @@ class RandomEnv:
     def reset(self):
         self.deck = Deck()
         self.players = [RandomPlayer(i, [self.deck.draw(), self.deck.draw()]) for i in range(5)]
-        self.community_cards = [self.deck.draw(), self.deck.draw()] # third card will be appended at the beginning of the first round
+        self.community_cards = [self.deck.draw(),
+                                self.deck.draw()]  # third card will be appended at the beginning of the first round
         self.pot = 0
 
     def render(self):
         print(f'pot: {self.pot}')
+        print('=================================')
         for player in self.players:
-            print(f'player {player.player_id}')
-            print(f'cards: {player.hand.cards}')
-            print(f'money: {player.money}')
-            print(f'bets: {player.bets}')
-            print(f'actions: {player.actions}')
-            print('=================================')
+            print(
+                f"""player {player.player_id}
+cards: {player.hand.cards}
+money: {player.money}
+bets: {player.bets}
+actions: {player.actions}
+================================="""
+            )
