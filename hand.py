@@ -30,7 +30,7 @@ class Hand:
         if straight is not None:
             if all_cards_same_suit:
                 # it is straight flush
-                return straight + 40000000000, ranks
+                return straight + 40_000_000_000, ranks
             else:
                 return straight, ranks
 
@@ -62,7 +62,7 @@ class Hand:
 
     @staticmethod
     def check_straight(rank_count):
-        base = 50000000000
+        base = 50_000_000_000
         # special case A2345
         if rank_count[12] == 1 and rank_count[0] == 1 and rank_count[1] == 1 and rank_count[2] == 1 and rank_count[3] == 1:
             return base + 3
@@ -92,7 +92,7 @@ class Hand:
                     return None
         if kicker is None or quad_rank is None:
             return None
-        return 80000000000 + quad_rank * 100 + kicker
+        return 80_000_000_000 + quad_rank * 100 + kicker
 
     @staticmethod
     def check_full_house(rank_count):
@@ -111,13 +111,13 @@ class Hand:
                     return None
         if triple_rank is None or pair_rank is None:
             return None
-        return 70000000000 + triple_rank * 100 + pair_rank
+        return 70_000_000_000 + triple_rank * 100 + pair_rank
 
     @staticmethod
     def check_flush(rank_count, all_cards_same_suit):
         if not all_cards_same_suit:
             return None
-        result = 60000000000
+        result = 60_000_000_000
         multiplier = 1
         for i in range(len(rank_count)):
             count = rank_count[i]
@@ -148,7 +148,7 @@ class Hand:
                     return None
         if triple_rank is None or kicker1 is None or kicker2 is None:
             return None
-        return 40000000000 + triple_rank * 10000 + kicker2 * 100 + kicker1
+        return 40_000_000_000 + triple_rank * 10_000 + kicker2 * 100 + kicker1
 
     @staticmethod
     def check_two_pairs(rank_count):
@@ -172,7 +172,7 @@ class Hand:
                     return None
         if pair1 is None or pair2 is None or kicker is None:
             return None
-        return 30000000000 + pair2 * 10000 + pair1 * 100 + kicker
+        return 30_000_000_000 + pair2 * 10_000 + pair1 * 100 + kicker
 
     @staticmethod
     def check_pair(rank_count):
@@ -201,11 +201,11 @@ class Hand:
                     return None
         if pair is None or kicker1 is None or kicker2 is None or kicker3 is None:
             return None
-        return 20000000000 + pair * 1000000 + kicker3 * 10000 + kicker2 * 100 + kicker1
+        return 20_000_000_000 + pair * 1_000_000 + kicker3 * 10_000 + kicker2 * 100 + kicker1
 
     @staticmethod
     def check_highest_card(rank_count):
-        result = 10000000000
+        result = 10_000_000_000
         multiplier = 1
         for i in range(len(rank_count)):
             count = rank_count[i]
