@@ -1,6 +1,7 @@
 from itertools import combinations
 from card import Card
 
+
 class Hand:
     def __init__(self, cards):
         self.cards = cards  # List of Card objects
@@ -64,11 +65,13 @@ class Hand:
     def check_straight(rank_count):
         base = 50_000_000_000
         # special case A2345
-        if rank_count[12] == 1 and rank_count[0] == 1 and rank_count[1] == 1 and rank_count[2] == 1 and rank_count[3] == 1:
+        if rank_count[12] == 1 and rank_count[0] == 1 and rank_count[1] == 1 and rank_count[2] == 1 and rank_count[
+            3] == 1:
             return base + 3
         for i in range(len(rank_count)):
             if rank_count[i] == 1:
-                if rank_count[i+1] == 1 and rank_count[i+2] == 1 and rank_count[i+3] == 1 and rank_count[i+4] == 1:
+                if rank_count[i + 1] == 1 and rank_count[i + 2] == 1 and rank_count[i + 3] == 1 and rank_count[
+                    i + 4] == 1:
                     return base + i + 4
                 else:
                     return None
@@ -214,4 +217,3 @@ class Hand:
                     result += i * multiplier
                     multiplier *= 100
         return result
-
