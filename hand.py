@@ -1,5 +1,5 @@
 from itertools import combinations
-
+from card import Card
 
 class Hand:
     def __init__(self, cards):
@@ -14,77 +14,204 @@ class Hand:
     def _hand_rank(self, hand):
         """Return a value indicating the rank of the hand."""
         ranks = sorted((card.order() for card in hand), reverse=True)
-        suits = [card.suit for card in hand]
-        unique_ranks = sorted(set(ranks), reverse=True)
+        rank_count = [0] * 13
+        all_cards_same_suit = True
+        current_suit = None
+        for card in hand:
+            rank_index = Card.RANK_ORDER[card.rank]
+            rank_count[rank_index] += 1
+            if current_suit is None:
+                current_suit = card.suit
+            elif card.suit != current_suit:
+                all_cards_same_suit = False
+                break
 
-        # Check for straight flush
-        if self._is_straight(ranks) and self._is_flush(suits):
-            return 8, ranks
+        straight = self.check_straight(rank_count)
+        if straight is not None:
+            if all_cards_same_suit:
+                # it is straight flush
+                return straight + 40000000000, ranks
+            else:
+                return straight, ranks
 
-        # Check for four of a kind
-        if self._has_n_of_a_kind(ranks, 4):
-            return 7, self._get_n_of_a_kind(ranks, 4), unique_ranks
+        four_of_a_kind = self.check_four(rank_count)
+        if four_of_a_kind is not None:
+            return four_of_a_kind, ranks
 
-        # Check for full house
-        if self._has_n_of_a_kind(ranks, 3) and self._has_n_of_a_kind(ranks, 2):
-            return 6, self._get_n_of_a_kind(ranks, 3), self._get_n_of_a_kind(ranks, 2)
+        full_house = self.check_full_house(rank_count)
+        if full_house is not None:
+            return full_house
 
-        # Check for flush
-        if self._is_flush(suits):
-            return 5, ranks
+        flush = self.check_flush(rank_count, all_cards_same_suit)
+        if flush is not None:
+            return flush, ranks
 
-        # Check for straight
-        if self._is_straight(ranks):
-            return 4, ranks
+        three_of_a_kind = self.check_three(rank_count)
+        if three_of_a_kind is not None:
+            return three_of_a_kind, ranks
 
-        # Check for three of a kind
-        if self._has_n_of_a_kind(ranks, 3):
-            return 3, self._get_n_of_a_kind(ranks, 3), unique_ranks
+        two_pairs = self.check_two_pairs(rank_count)
+        if two_pairs is not None:
+            return two_pairs
 
-        # Check for two pair
-        if len(self._get_pairs(ranks)) == 2:
-            pairs = self._get_pairs(ranks)
-            return 2, pairs, unique_ranks
+        pair = self.check_pair(rank_count)
+        if pair is not None:
+            return pair
 
-        # Check for one pair
-        if self._has_n_of_a_kind(ranks, 2):
-            return 1, self._get_n_of_a_kind(ranks, 2), unique_ranks
-
-        # High card
-        return 0, ranks
-
-    @staticmethod
-    def _is_straight(ranks):
-        """Check if the ranks form a straight."""
-        rank_set = set(ranks)
-        if len(rank_set) < 5:
-            return False
-        if max(rank_set) - min(rank_set) == 4:
-            return True
-        if {12, 0, 1, 2, 3}.issubset(rank_set):
-            return True
-        return False
+        return self.check_highest_card(rank_count)
 
     @staticmethod
-    def _is_flush(suits):
-        """Check if the suits form a flush."""
-        return len(set(suits)) == 1
+    def check_straight(rank_count):
+        base = 50000000000
+        # special case A2345
+        if rank_count[12] == 1 and rank_count[0] == 1 and rank_count[1] == 1 and rank_count[2] == 1 and rank_count[3] == 1:
+            return base + 3
+        for i in range(len(rank_count)):
+            if rank_count[i] == 1:
+                if rank_count[i+1] == 1 and rank_count[i+2] == 1 and rank_count[i+3] == 1 and rank_count[i+4] == 1:
+                    return base + i + 4
+                else:
+                    return None
+            elif rank_count[i] > 1:
+                return None
 
     @staticmethod
-    def _has_n_of_a_kind(ranks, n):
-        """Check if there are n cards of the same rank."""
-        return any(ranks.count(rank) == n for rank in ranks)
+    def check_four(rank_count):
+        kicker = None
+        quad_rank = None
+        for i in range(len(rank_count)):
+            if kicker is not None and quad_rank is not None:
+                break
+            count = rank_count[i]
+            if count > 0:
+                if count == 1:
+                    kicker = i
+                elif count == 4:
+                    quad_rank = i
+                else:
+                    return None
+        if kicker is None or quad_rank is None:
+            return None
+        return 80000000000 + quad_rank * 100 + kicker
 
     @staticmethod
-    def _get_n_of_a_kind(ranks, n):
-        """Get the rank of the n cards of the same rank."""
-        for rank in ranks:
-            if ranks.count(rank) == n:
-                return rank
-        return None
+    def check_full_house(rank_count):
+        triple_rank = None
+        pair_rank = None
+        for i in range(len(rank_count)):
+            if triple_rank is not None and pair_rank is not None:
+                break
+            count = rank_count[i]
+            if count > 0:
+                if count == 2:
+                    pair_rank = i
+                elif count == 3:
+                    triple_rank = i
+                else:
+                    return None
+        if triple_rank is None or pair_rank is None:
+            return None
+        return 70000000000 + triple_rank * 100 + pair_rank
 
     @staticmethod
-    def _get_pairs(ranks):
-        """Get all pairs in the hand."""
-        pairs = [rank for rank in set(ranks) if ranks.count(rank) == 2]
-        return pairs
+    def check_flush(rank_count, all_cards_same_suit):
+        if not all_cards_same_suit:
+            return None
+        result = 60000000000
+        multiplier = 1
+        for i in range(len(rank_count)):
+            count = rank_count[i]
+            if count > 0:
+                for _ in range(count):
+                    result += i * multiplier
+                    multiplier *= 100
+        return result
+
+    @staticmethod
+    def check_three(rank_count):
+        triple_rank = None
+        kicker1 = None
+        kicker2 = None
+        for i in range(len(rank_count)):
+            count = rank_count[i]
+            if count > 0:
+                if count == 1:
+                    if kicker1 is None:
+                        kicker1 = i
+                    elif kicker2 is None:
+                        kicker2 = i
+                    else:
+                        return None
+                elif count == 3:
+                    triple_rank = i
+                else:
+                    return None
+        if triple_rank is None or kicker1 is None or kicker2 is None:
+            return None
+        return 40000000000 + triple_rank * 10000 + kicker2 * 100 + kicker1
+
+    @staticmethod
+    def check_two_pairs(rank_count):
+        pair1 = None
+        pair2 = None
+        kicker = None
+        for i in range(len(rank_count)):
+            count = rank_count[i]
+            if count > 0:
+                if count == 2:
+                    if pair1 is None:
+                        pair1 = i
+                    elif pair2 is None:
+                        pair2 = i
+                elif count == 1:
+                    if kicker is None:
+                        kicker = 1
+                    else:
+                        return None
+                else:
+                    return None
+        if pair1 is None or pair2 is None or kicker is None:
+            return None
+        return 30000000000 + pair2 * 10000 + pair1 * 100 + kicker
+
+    @staticmethod
+    def check_pair(rank_count):
+        pair = None
+        kicker1 = None
+        kicker2 = None
+        kicker3 = None
+        for i in range(len(rank_count)):
+            count = rank_count[i]
+            if count > 0:
+                if count == 2:
+                    if pair is None:
+                        pair = i
+                    else:
+                        return None
+                elif count == 1:
+                    if kicker1 is None:
+                        kicker1 = 1
+                    if kicker2 is None:
+                        kicker2 = 1
+                    if kicker3 is None:
+                        kicker3 = 1
+                    else:
+                        return None
+                else:
+                    return None
+        if pair is None or kicker1 is None or kicker2 is None or kicker3 is None:
+            return None
+        return 20000000000 + pair * 1000000 + kicker3 * 10000 + kicker2 * 100 + kicker1
+
+    @staticmethod
+    def check_highest_card(rank_count):
+        result = 10000000000
+        multiplier = 1
+        for i in range(len(rank_count)):
+            count = rank_count[i]
+            if count > 0:
+                for _ in range(count):
+                    result += i * multiplier
+                    multiplier *= 100
+        return result
+
