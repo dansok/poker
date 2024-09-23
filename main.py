@@ -45,7 +45,7 @@ def main():
                     number_of_winners += 1
             weighted_score = 1 / number_of_winners
         all_cards = my_hand.cards + community_cards
-        out_file.write('\n'+','.join(str(Card.card_to_index(card)) for card in all_cards) +f',{weighted_score}' )
+        out_file.write('\n' + ','.join(str(Card.card_to_index(card)) for card in all_cards) + f',{weighted_score}')
     out_file.close()
 
 if __name__ == "__main__":
