@@ -40,7 +40,7 @@ class Hand:
 
         full_house = self.check_full_house(rank_count)
         if full_house is not None:
-            return full_house
+            return full_house, ranks
 
         flush = self.check_flush(rank_count, all_cards_same_suit)
         if flush is not None:
@@ -52,13 +52,13 @@ class Hand:
 
         two_pairs = self.check_two_pairs(rank_count)
         if two_pairs is not None:
-            return two_pairs
+            return two_pairs, ranks
 
         pair = self.check_pair(rank_count)
         if pair is not None:
-            return pair
+            return pair, ranks
 
-        return self.check_highest_card(rank_count)
+        return self.check_highest_card(rank_count), ranks
 
     @staticmethod
     def check_four(rank_count):
@@ -118,7 +118,7 @@ class Hand:
         # special case A2345
         if rank_count[12] == 1 and rank_count[0] == 1 and rank_count[1] == 1 and rank_count[2] == 1 and rank_count[3] == 1:
             return base + 3
-        for i in range(len(rank_count)):
+        for i in range(len(rank_count) - 4):
             if rank_count[i] == 1:
                 if rank_count[i+1] == 1 and rank_count[i+2] == 1 and rank_count[i+3] == 1 and rank_count[i+4] == 1:
                     return base + i + 4
