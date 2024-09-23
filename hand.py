@@ -70,8 +70,7 @@ class Hand:
             return base + 3
         for i in range(len(rank_count)):
             if rank_count[i] == 1:
-                if rank_count[i + 1] == 1 and rank_count[i + 2] == 1 and rank_count[i + 3] == 1 and rank_count[
-                    i + 4] == 1:
+                if rank_count[i + 1] == 1 and rank_count[i + 2] == 1 and rank_count[i + 3] == 1 and rank_count[i + 4] == 1:
                     return base + i + 4
                 else:
                     return None
