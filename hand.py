@@ -25,7 +25,6 @@ class Hand:
                 current_suit = card.suit
             elif card.suit != current_suit:
                 all_cards_same_suit = False
-                break
 
         straight = self.check_straight(rank_count)
         if straight is not None:
@@ -167,7 +166,7 @@ class Hand:
                         pair2 = i
                 elif count == 1:
                     if kicker is None:
-                        kicker = 1
+                        kicker = i
                     else:
                         return None
                 else:
@@ -192,11 +191,11 @@ class Hand:
                         return None
                 elif count == 1:
                     if kicker1 is None:
-                        kicker1 = 1
-                    if kicker2 is None:
-                        kicker2 = 1
-                    if kicker3 is None:
-                        kicker3 = 1
+                        kicker1 = i
+                    elif kicker2 is None:
+                        kicker2 = i
+                    elif kicker3 is None:
+                        kicker3 = i
                     else:
                         return None
                 else:
