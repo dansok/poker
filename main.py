@@ -23,7 +23,8 @@ from card import Card
 
 def main():
     out_file = open('play_results.csv', 'w')
-    out_file.write('my_card_1, my_card_2, community_card_1, community_card_2,community_card_3,community_card_4,community_card_5,weighted_output')
+    out_file.write(
+        'my_card_1, my_card_2, community_card_1, community_card_2,community_card_3,community_card_4,community_card_5,weighted_output')
     for _ in range(10000):
         deck = Deck()
 
@@ -47,6 +48,7 @@ def main():
         all_cards = my_hand.cards + community_cards
         out_file.write('\n' + ','.join(str(Card.card_to_index(card)) for card in all_cards) + f',{weighted_score}')
     out_file.close()
+
 
 if __name__ == "__main__":
     main()
