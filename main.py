@@ -24,7 +24,7 @@ from card import Card
 def main():
     with open('poker_data.csv', 'w') as out_file:
         out_file.write(
-            'my_card_1, my_card_2, community_card_1, community_card_2,community_card_3,community_card_4,'
+            'my_card_1,my_card_2,community_card_1,community_card_2,community_card_3,community_card_4,'
             'community_card_5,weighted_output')
         for _ in range(1_000_000):
             deck = Deck()
