@@ -2,7 +2,7 @@ from random_env import RandomEnv
 #
 # def main():
 #     env = RandomEnv()
-#     out_file = open('play_results.csv', 'w')
+#     out_file = open('poker_data.csv', 'w')
 #     out_file.write('my_card_1, my_card_2, community_card_1, community_card_2,community_card_3,community_card_4,community_card_5,weighted_output')
 #     for _ in range(1000):
 #         print(f'play {_}')
@@ -22,11 +22,11 @@ from card import Card
 
 
 def main():
-    with open('play_results.csv', 'w') as out_file:
+    with open('poker_data.csv', 'w') as out_file:
         out_file.write(
             'my_card_1, my_card_2, community_card_1, community_card_2,community_card_3,community_card_4,'
             'community_card_5,weighted_output')
-        for _ in range(10_000):
+        for _ in range(1_000_000):
             deck = Deck()
 
             hands = [Hand(cards=[deck.draw(), deck.draw()]) for _ in range(6)]

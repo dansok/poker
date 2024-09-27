@@ -51,17 +51,16 @@ class PokerDataset(Dataset):
     def __init__(self, csv_file):
         # Load the data from CSV
         self.data = pd.read_csv(csv_file)
-        # Convert the outcomes (win/loss/draw) to appropriate targets
-        self.data['outcome'] = self.data['outcome'].apply(self._convert_outcome)
 
-    def _convert_outcome(self, outcome):
-        # Convert outcome to one-hot encoded vector for win, draw, and loss
+    @staticmethod
+    def _convert_outcome(outcome):
+        # Convert outcome to class index (0: Loss, 1: Draw, 2: Win)
         if outcome == 0:  # Loss
-            return torch.tensor([1.0, 0.0, 0.0])  # Loss
+            return 0
         elif outcome == 1:  # Win
-            return torch.tensor([0.0, 0.0, 1.0])  # Win
+            return 2
         else:  # Draw
-            return torch.tensor([0.0, 1.0 / outcome, 0.0])  # Draw (fractional)
+            return 1
 
     def __len__(self):
         return len(self.data)
@@ -70,7 +69,7 @@ class PokerDataset(Dataset):
         # Extract the card sequence (features) and outcome (target)
         row = self.data.iloc[idx]
         cards = torch.tensor(row[:-1].values, dtype=torch.long)  # Card sequence (as integers)
-        outcome = row['outcome']  # Target outcome (as tensor)
+        outcome = self._convert_outcome(row['weighted_output'])  # Target outcome (as class index)
         return cards, outcome
 
 
