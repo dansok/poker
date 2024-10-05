@@ -6,10 +6,10 @@ from card import Card
 
 
 def main():
-    with open('poker_data.csv', 'w') as out_file:
+    with open("poker_data.csv", "w") as out_file:
         out_file.write(
-            'my_card_1,my_card_2,community_card_1,community_card_2,community_card_3,community_card_4,'
-            'community_card_5,weighted_output')
+            "my_card_1,my_card_2,community_card_1,community_card_2,community_card_3,community_card_4,"
+            "community_card_5,weighted_output")
         for _ in range(1_000_000):
             deck = Deck()
 
@@ -31,7 +31,7 @@ def main():
                         number_of_winners += 1
                 weighted_score = 1 / number_of_winners
             all_cards = my_hand.cards + community_cards
-            out_file.write('\n' + ','.join(str(Card.card_to_index(card)) for card in all_cards) + f',{weighted_score}')
+            out_file.write(f"\n{','.join(str(Card.card_to_index(card)) for card in all_cards)},{weighted_score}")
 
 
 if __name__ == "__main__":
