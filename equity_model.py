@@ -174,8 +174,8 @@ def main():
     nhead = 4  # Number of attention heads
     num_encoder_layers = 3  # Transformer layers
     batch_size = 32
-    num_epochs = 10
-    learning_rate = 0.001
+    num_epochs = 100
+    learning_rate = 0.01
 
     # Create the model
     model = PokerHandPredictor(num_cards=num_cards, d_model=d_model, nhead=nhead, num_encoder_layers=num_encoder_layers)
