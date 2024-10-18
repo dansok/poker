@@ -1,6 +1,6 @@
 import random
 from enum import Enum
-
+from operator import countOf
 from hand import Hand
 
 MIN_RAISE = 25
@@ -11,12 +11,19 @@ class ACTION(Enum):
     CALL = 2
     CHECK = 3
     FOLD = 4
+    BLIND = 5
 
     @staticmethod
-    def select_random():
-        return random.choice(list(ACTION))
+    def select_random(actions):
+        result = random.choice([ACTION.RAISE, ACTION.CALL, ACTION.CHECK, ACTION.FOLD])
+        if result == ACTION.RAISE and countOf(actions, ACTION.RAISE) >= 2:
+            return ACTION.CALL
+        return result
+
     @staticmethod
-    def select_raise_or_call():
+    def select_raise_or_call(actions):
+        if countOf(actions, ACTION.RAISE) >= 2:
+            return ACTION.CALL
         return random.choice([ACTION.RAISE, ACTION.CALL])
 
 
@@ -35,6 +42,7 @@ class RandomPlayer:
         self.last_action = None
         self.bets = []
         self.actions = []
+        self.contributions = []
 
     # current_bet is the current bet for the round
     # max_bet is maximal allowed bet for the round
@@ -45,21 +53,26 @@ class RandomPlayer:
         elif self.total_contribution == max_bet:
             action = ACTION.CHECK
         elif current_bet == 0:
-            action = ACTION.RAISE
+            action = ACTION.BLIND
         elif current_bet == max_bet:
             action = ACTION.CALL
         else:
             if self.total_contribution < current_bet:
-                action = ACTION.select_raise_or_call()
+                action = ACTION.select_raise_or_call(self.actions)
             else:
-                action = ACTION.select_random()
+                action = ACTION.select_random(self.actions)
 
         if current_bet == max_bet:
             action = ACTION.CALL
 
+        if action == ACTION.BLIND:
+            contribution = 1
+
         if action == ACTION.RAISE:
-            target_bet = random.randint(current_bet + 1, max_bet)
-            contribution = target_bet - self.total_contribution
+            # target_bet = random.randint(current_bet + 1, max_bet)
+            # contribution = target_bet - self.total_contribution
+            remainder_for_current_bet = current_bet - self.total_contribution
+            contribution = remainder_for_current_bet + self.get_random_bet(max_bet - remainder_for_current_bet)
         elif action == ACTION.CALL:
             contribution = current_bet - self.total_contribution
 
@@ -68,6 +81,7 @@ class RandomPlayer:
         self.last_action = action
         self.bets.append(contribution)
         self.actions.append(action)
+        self.contributions.append(contribution)
         return ActionResult(action, contribution)
 
     def prepare_for_round(self):
@@ -75,3 +89,9 @@ class RandomPlayer:
         self.last_action = None
         self.bets = []
         self.actions = []
+        self.contributions = []
+
+    def get_random_bet(self, upper_limit):
+        weights = [1 / pow(i, 2) for i in range(1, upper_limit + 1)]
+        lst = random.choices(range(1, upper_limit + 1), weights)
+        return lst[0]

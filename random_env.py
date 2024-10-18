@@ -1,8 +1,9 @@
+import json
 import sys
 
 from deck import Deck
 from random_player import RandomPlayer, ACTION
-
+from card import Card
 
 class RandomEnv:
     def __init__(self):
@@ -17,9 +18,10 @@ class RandomEnv:
         for player in self.players:
             player.prepare_for_round()
         max_bet_for_round = self.calc_max_bet_for_round()
+        # print('max_bet_for_round', max_bet_for_round)
         self.pot = 0
         current_bet = 0
-        while not self.round_finished(current_bet):
+        while max_bet_for_round > 0 and not self.round_finished(current_bet):
             for player in self.players:
                 if player.last_action != ACTION.FOLD:
                     action_result = player.act(current_bet, max_bet_for_round)
@@ -27,13 +29,26 @@ class RandomEnv:
                     current_bet = max(current_bet, player.total_contribution)
                     if action_result.action == ACTION.FOLD and self.all_but_one_folded():
                         break
+        winners = []
+        for player in self.players:
+            if player.last_action != ACTION.FOLD:
+                rank = player.hand.rank_hand(self.community_cards)
+                if len(winners) == 0 or winners[0][1][0] < rank[0]:
+                    winners = [[player, rank]]
+                elif winners[0][1][0] == rank[0]:
+                    winners.append([player, rank])
+        for winner in winners:
+            winner[0].money += self.pot / len(winners)
+
+        # for player in self.players:
+        #     print('bbbbb', self.pot, player.player_id, player.money, player.actions, player.contributions, sum(player.contributions))
 
     # We consider round finished when all players that didn't fold contributed amount equal to current_bet
     def round_finished(self, current_bet):
         if self.all_but_one_folded():
             return True
         for player in self.players:
-            if player.last_action != ACTION.FOLD and player.total_contribution != current_bet:
+            if player.last_action != ACTION.FOLD and player.total_contribution < current_bet:
                 return False
         return current_bet > 0
 
@@ -45,10 +60,10 @@ class RandomEnv:
         return number_of_folds == len(self.players) - 1
 
     def calc_max_bet_for_round(self):
-        result = None
+        result = 0
         for player in self.players:
             if player.money > 0:
-                if result is None:
+                if result == 0:
                     result = player.money
                 else:
                     result = min(result, player.money)
@@ -57,22 +72,26 @@ class RandomEnv:
     def play(self):
         self.play_count += 1
         self.reset()
+        player0 = self.players[0]
+        player0_money_before_round = player0.money
         for _ in range(3):
+            # print(f'round {_}')
             self.community_cards.append(self.deck.draw())
             self.play_round()
-            print(f'state as of the end of round {_}')
-            self.render()
+            # print(f'state as of the end of round {_}')
+            # self.render()
 
-        winners = []
-        for player in self.players:
-            if player.last_action != ACTION.FOLD:
-                rank = player.hand.rank_hand(self.community_cards)
-                if len(winners) == 0 or winners[0][1][0] < rank[0]:
-                    winners = [[player, rank]]
-                elif winners[0][1][0] == rank[0]:
-                    winners.append([player, rank])
-        for winner in winners:
-            winner[0].money += self.pot / len(winners)
+        out_list = player0.hand.cards + self.community_cards
+        play_result = ''
+        for card in out_list:
+            if play_result > '':
+                play_result += f',{Card.card_to_index(card)}'
+            else:
+                play_result = f'{Card.card_to_index(card)}'
+        proceeds = player0.money - player0_money_before_round
+        play_result += f',{proceeds}'
+
+        return play_result
 
     def reset(self):
         self.deck = Deck()
