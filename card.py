@@ -22,14 +22,14 @@ class Card:
 
     SUITS = "♠♥♣♦"
 
-    def __init__(self, _rank, _suit=None):
-        if _suit is not None:
-            rank = _rank
-            suit = _suit
+    def __init__(self, rank, suit=None):
+        if suit is not None:
+            rank = rank
+            suit = suit
         else:
-            rank_index = math.floor(_rank / 4)
+            rank_index = math.floor(rank / 4)
             rank = list(Card.RANK_ORDER.keys())[rank_index]
-            suit_index = _rank % 4
+            suit_index = rank % 4
             suit = Card.SUITS[suit_index]
         if rank not in Card.RANK_ORDER:
             raise ValueError(f"Invalid rank: {rank}")

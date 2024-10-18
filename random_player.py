@@ -72,7 +72,7 @@ class RandomPlayer:
             # target_bet = random.randint(current_bet + 1, max_bet)
             # contribution = target_bet - self.total_contribution
             remainder_for_current_bet = current_bet - self.total_contribution
-            contribution = remainder_for_current_bet + self.get_random_bet(max_bet - remainder_for_current_bet)
+            contribution = remainder_for_current_bet + RandomPlayer.get_random_bet(max_bet - remainder_for_current_bet)
         elif action == ACTION.CALL:
             contribution = current_bet - self.total_contribution
 
@@ -91,7 +91,8 @@ class RandomPlayer:
         self.actions = []
         self.contributions = []
 
-    def get_random_bet(self, upper_limit):
+    @staticmethod
+    def get_random_bet(upper_limit):
         weights = [1 / pow(i, 2) for i in range(1, upper_limit + 1)]
         lst = random.choices(range(1, upper_limit + 1), weights)
         return lst[0]
