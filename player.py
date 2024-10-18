@@ -2,9 +2,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch import optim
-from approximators import PolicyNetwork, ValueNetwork
-from card import Card
-from hand import Hand
+from approximators import PolicyNetwork, ValueNetwork  # Assuming these are custom modules
+from card import Card  # Assuming Card has card_to_one_hot method
+from hand import Hand  # Assuming Hand is a custom class for storing player hand
 
 
 class Player:
@@ -12,15 +12,16 @@ class Player:
         self.player_id = player_id  # Unique identifier for the player
         self.hand = Hand(hand)  # Initial hand dealt to the player (two cards)
 
+        # Networks initialized with dynamic input dimension
         self.policy_network = PolicyNetwork(
-            input_dim=52 * (2 + 5) + 1,  # 5 community cards + 2 hand cards + pot value
+            input_dim=52 * (2 + 5) + 1,  # 5 community cards (max) + 2 hand cards + pot value
             hidden_dim_1=256,
             hidden_dim_2=128,
             hidden_dim_3=64,
             output_dim=3,
         )
         self.value_network = ValueNetwork(
-            input_dim=52 * (2 + 5) + 1,  # 5 community cards + 2 hand cards + pot value
+            input_dim=52 * (2 + 5) + 1,  # 5 community cards (max) + 2 hand cards + pot value
             hidden_dim_1=256,
             hidden_dim_2=128,
             hidden_dim_3=64,
@@ -31,13 +32,27 @@ class Player:
 
     def get_observation(self, community_cards, pot):
         """Generate the observation vector for the player."""
+        # Encode the player's hand (always two cards)
         hand_encoding = np.concatenate([Card.card_to_one_hot(card) for card in self.hand.cards])
+
+        # Encode the community cards, pad with zeros if less than 5 community cards
         community_cards_encoding = np.concatenate([
             Card.card_to_one_hot(card) if card is not None else np.zeros(52, dtype=np.float64)
             for card in community_cards
         ])
+
+        # Pad with zero vectors to ensure exactly 5 community card encodings
+        missing_cards = 5 - len(community_cards)
+        if missing_cards > 0:
+            community_cards_encoding = np.concatenate([
+                community_cards_encoding,
+                np.zeros(52 * missing_cards, dtype=np.float64)
+            ])
+
+        # Encode the pot value
         pot_encoding = np.array([pot], dtype=np.float64)
 
+        # Concatenate hand, community cards, and pot encoding to form the observation
         return np.concatenate([hand_encoding, community_cards_encoding, pot_encoding])
 
     def get_action_and_value(self, community_cards, pot):
