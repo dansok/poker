@@ -1,3 +1,4 @@
+import math
 import random
 from enum import Enum
 from operator import countOf
@@ -93,6 +94,6 @@ class RandomPlayer:
 
     @staticmethod
     def get_random_bet(upper_limit):
-        weights = [1 / pow(i, 2) for i in range(1, upper_limit + 1)]
-        lst = random.choices(range(1, upper_limit + 1), weights)
+        weights = [1 / pow(i, 2) for i in range(1, math.floor(upper_limit + 1))]
+        lst = random.choices(range(1, math.floor(upper_limit + 1)), weights)
         return lst[0]
