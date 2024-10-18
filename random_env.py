@@ -1,9 +1,7 @@
-import json
-import sys
-
+from card import Card
 from deck import Deck
 from random_player import RandomPlayer, ACTION
-from card import Card
+
 
 class RandomEnv:
     def __init__(self):
