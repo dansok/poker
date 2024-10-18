@@ -9,13 +9,13 @@ from random_env import RandomEnv
 
 def main():
     env = RandomEnv()
-    out_file = open('play_results.csv', 'w')
-    out_file.write('my_card_1, my_card_2, community_card_1, community_card_2,community_card_3,community_card_4,community_card_5,weighted_output')
-    for _ in range(1_000):
-        print(f'play {_}')
-        play_result = env.play()
-        out_file.write('\n' + play_result)
-    out_file.close()
+    with open("play_results.csv", "w") as output_file:
+        output_file.write("my_card_1,my_card_2,community_card_1,community_card_2,community_card_3,community_card_4,"
+                          "community_card_5,weighted_output")
+        for _ in range(1_000):
+            # print(f"play {_}")
+            play_result = env.play()
+            output_file.write(f"\n{play_result}")
     env.render()
 
 # def main():
