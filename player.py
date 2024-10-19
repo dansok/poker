@@ -96,6 +96,38 @@ class Player:
         value_loss.backward()
         self.value_optimizer.step()
 
+    def act(self, community_cards, pot, epsilon=0.0):
+        """
+        Selects an action for the player based on the current game state.
+
+        Args:
+            community_cards (list): A list of community cards (can be fewer than 5).
+            pot (float): The current size of the pot.
+            epsilon (float): Probability of taking a random action for exploration (default=0.0).
+
+        Returns:
+            int: The selected action (0: Fold, 1: Check/Call, 2: Raise).
+            float: The predicted value of the current state.
+        """
+        # Step 1: Get the current observation (hand, community cards, and pot)
+        observation = self.get_observation(community_cards, pot)
+        observation_tensor = torch.tensor(observation, dtype=torch.float64).unsqueeze(0)
+
+        # Step 2: Forward pass through the policy network to get action probabilities
+        action_probabilities = self.policy_network(observation_tensor).detach().numpy()[0]
+
+        # Step 3: Epsilon-greedy exploration: With epsilon probability, take a random action
+        if np.random.rand() < epsilon:
+            action = np.random.choice(len(action_probabilities))  # Random action (0, 1, or 2)
+        else:
+            # Step 4: Select action based on the highest probability (greedy policy)
+            action = np.argmax(action_probabilities)
+
+        # Step 5: Get the value prediction for the current observation
+        value = self.value_network(observation_tensor).item()
+
+        return action, value
+
     @staticmethod
     def _card_to_index(card):
         """Convert a card to a unique index."""
