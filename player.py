@@ -2,9 +2,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch import optim
-from approximators import PolicyNetwork, ValueNetwork  # Assuming these are custom modules
-from card import Card  # Assuming Card has card_to_one_hot method
-from hand import Hand  # Assuming Hand is a custom class for storing player hand
+from approximators import PolicyNetwork, ValueNetwork
+from card import Card
+from hand import Hand
 
 
 class Player:
