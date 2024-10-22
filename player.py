@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch import optim
+
+from action import ACTION
 from approximators import PolicyNetwork, ValueNetwork
 from card import Card
 from hand import Hand
@@ -18,7 +20,7 @@ class Player:
             hidden_dim_1=256,
             hidden_dim_2=128,
             hidden_dim_3=64,
-            output_dim=3,
+            output_dim=len(ACTION),  # Output dimension matches number of actions
         )
         self.value_network = ValueNetwork(
             input_dim=52 * (2 + 5) + 1,  # 5 community cards (max) + 2 hand cards + pot value
@@ -65,14 +67,15 @@ class Player:
         value = self.value_network(observation_tensor)
 
         # Sample action based on the probabilities
-        action = torch.multinomial(action_probabilities[0], num_samples=1).item()
+        action_idx = torch.multinomial(action_probabilities[0], num_samples=1).item()
+        action = ACTION(action_idx)
 
         return action, value.item()
 
     def train(self, observation, action, reward):
         """Train the policy and value networks."""
         observation_tensor = torch.tensor(observation, dtype=torch.float64).unsqueeze(0)
-        action_tensor = torch.tensor(action, dtype=torch.long).unsqueeze(0)
+        action_tensor = torch.tensor(action.value, dtype=torch.long).unsqueeze(0)
         reward_tensor = torch.tensor(reward, dtype=torch.float64).unsqueeze(0)
 
         # Forward pass
@@ -106,7 +109,7 @@ class Player:
             epsilon (float): Probability of taking a random action for exploration (default=0.0).
 
         Returns:
-            int: The selected action (0: Fold, 1: Check/Call, 2: Raise).
+            ACTION: The selected action.
             float: The predicted value of the current state.
         """
         # Step 1: Get the current observation (hand, community cards, and pot)
@@ -118,13 +121,16 @@ class Player:
 
         # Step 3: Epsilon-greedy exploration: With epsilon probability, take a random action
         if np.random.rand() < epsilon:
-            action = np.random.choice(len(action_probabilities))  # Random action (0, 1, or 2)
+            action_idx = np.random.choice(len(action_probabilities))  # Random action index
         else:
             # Step 4: Select action based on the highest probability (greedy policy)
-            action = np.argmax(action_probabilities)
+            action_idx = np.argmax(action_probabilities)
 
         # Step 5: Get the value prediction for the current observation
         value = self.value_network(observation_tensor).item()
+
+        # Convert action index to the corresponding ACTION enum
+        action = ACTION(action_idx + 1)
 
         return action, value
 
