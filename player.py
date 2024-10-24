@@ -7,14 +7,22 @@ from action import ACTION
 from approximators import PolicyNetwork, ValueNetwork
 from card import Card
 from hand import Hand
+import math
+import random
 
 
 class Player:
     def __init__(self, player_id, hand):
         self.player_id = player_id  # Unique identifier for the player
         self.hand = Hand(hand)  # Initial hand dealt to the player (two cards)
+        self.money = 1_000
+        self.total_contribution = 0
+        self.last_action = None
+        self.bets = []
+        self.actions = []
+        self.contributions = []
 
-        # Networks initialized with dynamic input dimension
+    # Networks initialized with dynamic input dimension
         self.policy_network = PolicyNetwork(
             input_dim=52 * (2 + 5) + 1,  # 5 community cards (max) + 2 hand cards + pot value
             hidden_dim_1=256,
@@ -60,7 +68,7 @@ class Player:
     def get_action_and_value(self, community_cards, pot):
         """Get the action and value for the current observation."""
         observation = self.get_observation(community_cards, pot)
-        observation_tensor = torch.tensor(observation, dtype=torch.float64).unsqueeze(0)
+        observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
 
         # Forward pass through policy and value networks
         action_probabilities = self.policy_network(observation_tensor)
@@ -74,9 +82,9 @@ class Player:
 
     def train(self, observation, action, reward):
         """Train the policy and value networks."""
-        observation_tensor = torch.tensor(observation, dtype=torch.float64).unsqueeze(0)
+        observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
         action_tensor = torch.tensor(action.value, dtype=torch.long).unsqueeze(0)
-        reward_tensor = torch.tensor(reward, dtype=torch.float64).unsqueeze(0)
+        reward_tensor = torch.tensor(reward, dtype=torch.float32).unsqueeze(0)
 
         # Forward pass
         action_probabilities = self.policy_network(observation_tensor)
@@ -99,40 +107,75 @@ class Player:
         value_loss.backward()
         self.value_optimizer.step()
 
-    def act(self, community_cards, pot, epsilon=0.0):
+    def act(self, current_bet, max_bet, community_cards, pot, epsilon=0.0):
         """
         Selects an action for the player based on the current game state.
 
         Args:
+            current_bet(float): Current bet for the round
+            max_bet(flot): max possible bet for the round
             community_cards (list): A list of community cards (can be fewer than 5).
             pot (float): The current size of the pot.
             epsilon (float): Probability of taking a random action for exploration (default=0.0).
 
         Returns:
-            ACTION: The selected action.
+            action: The selected action.
             float: The predicted value of the current state.
+            contribution made by player in the selected action
         """
-        # Step 1: Get the current observation (hand, community cards, and pot)
-        observation = self.get_observation(community_cards, pot)
-        observation_tensor = torch.tensor(observation, dtype=torch.float64).unsqueeze(0)
-
-        # Step 2: Forward pass through the policy network to get action probabilities
-        action_probabilities = self.policy_network(observation_tensor).detach().numpy()[0]
-
-        # Step 3: Epsilon-greedy exploration: With epsilon probability, take a random action
-        if np.random.rand() < epsilon:
-            action_idx = np.random.choice(len(action_probabilities))  # Random action index
+        # ======================================================================
+        contribution = 0
+        value = 0
+        if self.last_action == ACTION.FOLD or (self.money == 0 and self.total_contribution == 0):
+            action = ACTION.FOLD
+        elif self.total_contribution == max_bet:
+            action = ACTION.CHECK
+        elif current_bet == 0:
+            action = ACTION.BLIND
+        elif current_bet == max_bet:
+            action = ACTION.CALL
         else:
-            # Step 4: Select action based on the highest probability (greedy policy)
-            action_idx = np.argmax(action_probabilities)
+            # Step 1: Get the current observation (hand, community cards, and pot)
+            observation = self.get_observation(community_cards, pot)
+            observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
 
-        # Step 5: Get the value prediction for the current observation
-        value = self.value_network(observation_tensor).item()
+            # Step 2: Forward pass through the policy network to get action probabilities
+            action_probabilities = self.policy_network(observation_tensor).detach().numpy()[0]
 
-        # Convert action index to the corresponding ACTION enum
-        action = ACTION(action_idx + 1)
+            # Step 3: Epsilon-greedy exploration: With epsilon probability, take a random action
+            if np.random.rand() < epsilon:
+                action_idx = np.random.choice(len(action_probabilities))  # Random action index
+            else:
+                # Step 4: Select action based on the highest probability (greedy policy)
+                action_idx = np.argmax(action_probabilities)
 
-        return action, value
+            # Step 5: Get the value prediction for the current observation
+            value = self.value_network(observation_tensor).item()
+
+            # Convert action index to the corresponding ACTION enum
+            action = ACTION(action_idx + 1)
+
+        self.money -= contribution
+        self.total_contribution += contribution
+        self.last_action = action
+        self.bets.append(contribution)
+        self.actions.append(action)
+        self.contributions.append(contribution)
+
+        if action == ACTION.RAISE:
+            remainder_for_current_bet = current_bet - self.total_contribution
+            contribution = remainder_for_current_bet + Player.get_random_bet(max_bet - remainder_for_current_bet)
+        elif action == ACTION.CALL:
+            contribution = current_bet - self.total_contribution
+
+        return action, value, contribution
+
+    def prepare_for_round(self):
+        self.total_contribution = 0
+        self.last_action = None
+        self.bets = []
+        self.actions = []
+        self.contributions = []
 
     @staticmethod
     def _card_to_index(card):
@@ -148,3 +191,11 @@ class Player:
         index = Player._card_to_index(card)
         one_hot[index] = 1
         return one_hot
+
+    @staticmethod
+    def get_random_bet(upper_limit):
+        if upper_limit < 2:
+            return 1
+        weights = [1 / pow(i, 2) for i in range(1, math.floor(upper_limit + 1))]
+        lst = random.choices(range(1, math.floor(upper_limit + 1)), weights)
+        return lst[0]

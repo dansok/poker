@@ -4,15 +4,15 @@ from deck import Deck
 from hand import Hand
 from card import Card
 
-from random_env import RandomEnv
-
+from env import Env
 
 def main():
-    env = RandomEnv()
+    # env = RandomEnv()
+    env = Env()
     with open("play_results.csv", "w") as output_file:
         output_file.write("my_card_1,my_card_2,community_card_1,community_card_2,community_card_3,community_card_4,"
                           "community_card_5,weighted_output")
-        for _ in range(1_000):
+        for _ in range(1):
             # print(f"play {_}")
             play_result = env.play()
             output_file.write(f"\n{play_result}")
