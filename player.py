@@ -2,13 +2,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch import optim
-
+import math
+import random
 from action import ACTION
 from approximators import PolicyNetwork, ValueNetwork
 from card import Card
 from hand import Hand
-import math
-import random
 
 
 class Player:
@@ -21,8 +20,9 @@ class Player:
         self.bets = []
         self.actions = []
         self.contributions = []
+        self.experience_buffer = []  # Store experiences for training
 
-    # Networks initialized with dynamic input dimension
+        # Networks initialized with dynamic input dimension
         self.policy_network = PolicyNetwork(
             input_dim=52 * (2 + 5) + 1,  # 5 community cards (max) + 2 hand cards + pot value
             hidden_dim_1=256,
@@ -42,16 +42,13 @@ class Player:
 
     def get_observation(self, community_cards, pot):
         """Generate the observation vector for the player."""
-        # Encode the player's hand (always two cards)
-        hand_encoding = np.concatenate([Card.card_to_one_hot(card) for card in self.hand.cards])
+        hand_encoding = np.concatenate([Player._card_to_one_hot(card) for card in self.hand.cards])
 
-        # Encode the community cards, pad with zeros if less than 5 community cards
         community_cards_encoding = np.concatenate([
-            Card.card_to_one_hot(card) if card is not None else np.zeros(52, dtype=np.float64)
+            Player._card_to_one_hot(card) if card is not None else np.zeros(52, dtype=np.float64)
             for card in community_cards
         ])
 
-        # Pad with zero vectors to ensure exactly 5 community card encodings
         missing_cards = 5 - len(community_cards)
         if missing_cards > 0:
             community_cards_encoding = np.concatenate([
@@ -59,10 +56,7 @@ class Player:
                 np.zeros(52 * missing_cards, dtype=np.float64)
             ])
 
-        # Encode the pot value
         pot_encoding = np.array([pot], dtype=np.float64)
-
-        # Concatenate hand, community cards, and pot encoding to form the observation
         return np.concatenate([hand_encoding, community_cards_encoding, pot_encoding])
 
     def get_action_and_value(self, community_cards, pot):
@@ -70,50 +64,21 @@ class Player:
         observation = self.get_observation(community_cards, pot)
         observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
 
-        # Forward pass through policy and value networks
         action_probabilities = self.policy_network(observation_tensor)
         value = self.value_network(observation_tensor)
 
-        # Sample action based on the probabilities
-        action_idx = torch.multinomial(action_probabilities[0], num_samples=1).item()
-        action = ACTION(action_idx)
+        action_index = torch.multinomial(action_probabilities[0], num_samples=1).item()
+        action = ACTION(action_index)
 
         return action, value.item()
 
-    def train(self, observation, action, reward):
-        """Train the policy and value networks."""
-        observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
-        action_tensor = torch.tensor(action.value, dtype=torch.long).unsqueeze(0)
-        reward_tensor = torch.tensor(reward, dtype=torch.float32).unsqueeze(0)
-
-        # Forward pass
-        action_probabilities = self.policy_network(observation_tensor)
-        value = self.value_network(observation_tensor)
-
-        # Compute policy loss
-        action_probability = action_probabilities[0, action_tensor]
-        policy_loss = -torch.log(action_probability) * (reward_tensor - value)
-
-        # Compute value loss
-        value_loss = nn.MSELoss()(value, reward_tensor)
-
-        # Optimize policy network
-        self.policy_optimizer.zero_grad()
-        policy_loss.backward()
-        self.policy_optimizer.step()
-
-        # Optimize value network
-        self.value_optimizer.zero_grad()
-        value_loss.backward()
-        self.value_optimizer.step()
-
     def act(self, current_bet, max_bet, community_cards, pot, epsilon=0.0):
         """
-        Selects an action for the player based on the current game state.
+        Selects an action for the player based on the current game state, respecting the game's rules.
 
         Args:
-            current_bet(float): Current bet for the round
-            max_bet(flot): max possible bet for the round
+            current_bet (float): Current bet for the round.
+            max_bet (float): Max possible bet for the round.
             community_cards (list): A list of community cards (can be fewer than 5).
             pot (float): The current size of the pot.
             epsilon (float): Probability of taking a random action for exploration (default=0.0).
@@ -121,12 +86,28 @@ class Player:
         Returns:
             action: The selected action.
             float: The predicted value of the current state.
-            contribution made by player in the selected action
+            contribution: Contribution made by the player in the selected action.
         """
-        # ======================================================================
         contribution = 0
-        value = 0
-        if self.last_action == ACTION.FOLD or (self.money == 0 and self.total_contribution == 0):
+        observation = self.get_observation(community_cards, pot)
+        observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
+
+        action_probabilities = self.policy_network(observation_tensor)
+        value = self.value_network(observation_tensor)
+
+        if np.random.rand() < epsilon:
+            action_index = np.random.choice(len(ACTION))  # Random action index
+        else:
+            valid_actions = self.get_valid_actions(current_bet, max_bet)
+            masked_action_probabilities = action_probabilities.clone()
+            masked_action_probabilities[0, ~valid_actions] = -float('inf')  # Mask invalid actions
+
+            action_index = torch.multinomial(torch.softmax(masked_action_probabilities, dim=-1)[0], 1).item()
+
+        action = ACTION(action_index)
+
+        # Handle forced actions based on game rules
+        if action == ACTION.FOLD or (self.money == 0 and self.total_contribution == 0):
             action = ACTION.FOLD
         elif self.total_contribution == max_bet:
             action = ACTION.CHECK
@@ -135,25 +116,11 @@ class Player:
         elif current_bet == max_bet:
             action = ACTION.CALL
         else:
-            # Step 1: Get the current observation (hand, community cards, and pot)
-            observation = self.get_observation(community_cards, pot)
-            observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
-
-            # Step 2: Forward pass through the policy network to get action probabilities
-            action_probabilities = self.policy_network(observation_tensor).detach().numpy()[0]
-
-            # Step 3: Epsilon-greedy exploration: With epsilon probability, take a random action
-            if np.random.rand() < epsilon:
-                action_idx = np.random.choice(len(action_probabilities))  # Random action index
-            else:
-                # Step 4: Select action based on the highest probability (greedy policy)
-                action_idx = np.argmax(action_probabilities)
-
-            # Step 5: Get the value prediction for the current observation
-            value = self.value_network(observation_tensor).item()
-
-            # Convert action index to the corresponding ACTION enum
-            action = ACTION(action_idx + 1)
+            if action == ACTION.RAISE:
+                remainder_for_current_bet = current_bet - self.total_contribution
+                contribution = remainder_for_current_bet + self.get_random_bet(max_bet - remainder_for_current_bet)
+            elif action == ACTION.CALL:
+                contribution = current_bet - self.total_contribution
 
         self.money -= contribution
         self.total_contribution += contribution
@@ -162,13 +129,53 @@ class Player:
         self.actions.append(action)
         self.contributions.append(contribution)
 
-        if action == ACTION.RAISE:
-            remainder_for_current_bet = current_bet - self.total_contribution
-            contribution = remainder_for_current_bet + Player.get_random_bet(max_bet - remainder_for_current_bet)
-        elif action == ACTION.CALL:
-            contribution = current_bet - self.total_contribution
+        if action == ACTION(action_index):  # Action matches the network's suggestion
+            self.experience_buffer.append((observation, action, value))
 
-        return action, value, contribution
+        return action, value.item(), contribution
+
+    def train(self, final_reward, gamma=0.99):
+        """
+        Train the policy and value networks using experiences stored in the buffer.
+
+        Args:
+            final_reward (float): The reward obtained at the end of the round.
+            gamma (float): Discount factor for future rewards (default=0.99).
+        """
+        if len(self.experience_buffer) == 0:
+            return
+
+        G = final_reward  # Initialize return with the final reward
+        for observation, action, _ in reversed(self.experience_buffer):
+            observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
+            action_tensor = torch.tensor(action.value, dtype=torch.long).unsqueeze(0)
+            reward_tensor = torch.tensor(G, dtype=torch.float32).unsqueeze(0)
+
+            # Forward pass for both policy and value networks
+            action_probabilities = self.policy_network(observation_tensor)
+            value = self.value_network(observation_tensor)
+
+            # Compute policy loss (REINFORCE rule)
+            action_probability = action_probabilities[0, action_tensor]
+            policy_loss = -torch.log(action_probability) * (reward_tensor - value)
+
+            # Compute value loss
+            value_loss = nn.MSELoss()(value, reward_tensor)
+
+            # Optimize policy network
+            self.policy_optimizer.zero_grad()
+            policy_loss.backward()
+            self.policy_optimizer.step()
+
+            # Optimize value network
+            self.value_optimizer.zero_grad()
+            value_loss.backward()
+            self.value_optimizer.step()
+
+            # Update the return for the next timestep (G = r + gamma * G)
+            G = gamma * G
+
+        self.experience_buffer = []  # Clear the experience buffer after training
 
     def prepare_for_round(self):
         self.total_contribution = 0
@@ -176,6 +183,35 @@ class Player:
         self.bets = []
         self.actions = []
         self.contributions = []
+        self.experience_buffer = []  # Reset experiences for the new round
+
+    def get_valid_actions(self, current_bet, max_bet):
+        """
+        Returns a boolean mask indicating which actions are valid in the current game state.
+        """
+        valid_actions = np.ones(len(ACTION), dtype=bool)  # All actions valid by default
+
+        if self.money == 0 or self.last_action == ACTION.FOLD:
+            valid_actions[:] = False
+            valid_actions[ACTION.FOLD.value] = True
+            return valid_actions
+
+        if self.total_contribution == max_bet:
+            valid_actions[:] = False
+            valid_actions[ACTION.CHECK.value] = True
+            valid_actions[ACTION.FOLD.value] = True
+            return valid_actions
+
+        if current_bet == 0:
+            valid_actions[ACTION.BLIND.value] = True
+
+        if current_bet > 0 and current_bet > self.total_contribution:
+            valid_actions[ACTION.CALL.value] = True
+
+        if self.money > current_bet:
+            valid_actions[ACTION.RAISE.value] = True
+
+        return valid_actions
 
     @staticmethod
     def _card_to_index(card):
