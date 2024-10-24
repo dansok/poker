@@ -4,11 +4,11 @@ import random
 
 
 class ACTION(Enum):
-    RAISE = 1
-    CALL = 2
-    CHECK = 3
-    FOLD = 4
-    BLIND = 5
+    RAISE = 0
+    CALL = 1
+    CHECK = 2
+    FOLD = 3
+    BLIND = 4
 
     @staticmethod
     def select_random(actions):
