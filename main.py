@@ -1,10 +1,5 @@
-from collections import OrderedDict
-
-from deck import Deck
-from hand import Hand
-from card import Card
-
 from env import Env
+
 
 def main():
     # env = RandomEnv()
@@ -17,6 +12,7 @@ def main():
             play_result = env.play()
             output_file.write(f"\n{play_result}")
     env.render()
+
 
 # def main():
 #     with open("poker_data.csv", "w") as out_file:
