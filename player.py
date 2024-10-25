@@ -149,7 +149,7 @@ class Player:
 
         G = final_reward  # Initialize return with the final reward
         for observation, action, _ in reversed(self.experience_buffer):
-            observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
+            observation_tensor = torch.tensor(observation, dtype=torch.float32, requires_grad=False).unsqueeze(0)
             action_tensor = torch.tensor(action.value, dtype=torch.long).unsqueeze(0)
             reward_tensor = torch.tensor(G, dtype=torch.float32).unsqueeze(0)
 
@@ -166,12 +166,12 @@ class Player:
 
             # Optimize policy network
             self.policy_optimizer.zero_grad()
-            policy_loss.backward()
+            policy_loss.backward(retain_graph=True)  # Retain graph for policy loss backpropagation
             self.policy_optimizer.step()
 
             # Optimize value network
             self.value_optimizer.zero_grad()
-            value_loss.backward()
+            value_loss.backward()  # Now it's safe to backpropagate
             self.value_optimizer.step()
 
             # Update the return for the next timestep (G = r + gamma * G)
