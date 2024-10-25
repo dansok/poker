@@ -107,14 +107,16 @@ class Player:
         action = ACTION(action_index)
 
         # Handle forced actions based on game rules
-        if action == ACTION.FOLD or (self.money == 0 and self.total_contribution == 0):
+        if action == ACTION.FOLD or self.last_action == ACTION.FOLD or (self.money == 0 and self.total_contribution == 0):
             action = ACTION.FOLD
-        elif self.total_contribution == max_bet:
+        elif self.total_contribution >= max_bet:
             action = ACTION.CHECK
         elif current_bet == 0:
-            action = ACTION.BLIND
-        elif current_bet == max_bet:
+            action = ACTION.RAISE
+            contribution = 1
+        elif current_bet >= max_bet:
             action = ACTION.CALL
+            contribution = current_bet - self.total_contribution
         else:
             if action == ACTION.RAISE:
                 remainder_for_current_bet = current_bet - self.total_contribution
@@ -203,7 +205,7 @@ class Player:
             return valid_actions
 
         if current_bet == 0:
-            valid_actions[ACTION.BLIND.value] = True
+            valid_actions[ACTION.RAISE.value] = True
 
         if current_bet > 0 and current_bet > self.total_contribution:
             valid_actions[ACTION.CALL.value] = True

@@ -39,8 +39,8 @@ class Env:
         for winner in winners:
             winner[0].money += self.pot / len(winners)
 
-        # for player in self.players:
-        #     print('bbbbb', self.pot, player.player_id, player.money, player.actions, player.contributions, sum(player.contributions))
+        for player in self.players:
+            print('bbbbb', self.pot, player.player_id, player.money, player.actions, player.contributions, sum(player.contributions))
 
     # We consider round finished when all players that didn't fold contributed amount equal to current_bet
     def round_finished(self, current_bet):
@@ -76,7 +76,12 @@ class Env:
         for _ in range(3):
             # print(f'round {_}')
             self.community_cards.append(self.deck.draw())
+            money_before_round = [player.money for player in self.players]
             self.play_round()
+            for i, player in enumerate(self.players):
+                profit = player.money - money_before_round[i]
+                player.train(profit)
+
             # print(f'state as of the end of round {_}')
             # self.render()
 

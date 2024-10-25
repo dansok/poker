@@ -8,7 +8,7 @@ class ACTION(Enum):
     CALL = 1
     CHECK = 2
     FOLD = 3
-    BLIND = 4
+    # BLIND = 4   it will be emulated with RAISE
 
     @staticmethod
     def select_random(actions):
