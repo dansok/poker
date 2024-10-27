@@ -103,25 +103,28 @@ class Player:
 
         return action, value.item(), contribution
 
-    def train(self, final_reward, gamma=0.99):
-        """Train the policy, value, and raise amount networks."""
+    def train(self, win_outcome, gamma=0.99):
+        """Train the policy, value, and raise amount networks based on win/loss outcome."""
         if not self.experience_buffer:
             return
 
-        G = final_reward  # Initialize return with the final reward
+        G = win_outcome  # Set G to 1 if win, 0 if lose
         for observation, action, _, contribution in reversed(self.experience_buffer):
             observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
             action_tensor = torch.tensor(action.value, dtype=torch.long).unsqueeze(0)
-            reward_tensor = torch.tensor(G, dtype=torch.float32).unsqueeze(0)
+            reward_tensor = torch.tensor([G], dtype=torch.float32).unsqueeze(0)
 
             # Policy and value network forward pass
             action_probabilities = self.policy_network(observation_tensor)
             value = self.value_network(observation_tensor)
 
-            # Policy and value loss
+            # Policy loss
             action_probability = action_probabilities[0, action_tensor]
-            policy_loss = -torch.log(action_probability) * (reward_tensor - value)
-            value_loss = F.mse_loss(value, reward_tensor)
+            policy_loss = -torch.log(action_probability) * (
+                        reward_tensor - torch.sigmoid(value))  # Sigmoid for probability
+
+            # Value loss for probability of winning
+            value_loss = F.binary_cross_entropy_with_logits(value, reward_tensor)
 
             # Optimize policy network
             self.policy_optimizer.zero_grad()
@@ -143,7 +146,7 @@ class Player:
                 raise_amount_loss.backward()
                 self.raise_amount_optimizer.step()
 
-            # Update G for next step
+            # Update G for next step (still gamma-discounted, even though binary)
             G = gamma * G
 
         # Clear experience buffer
