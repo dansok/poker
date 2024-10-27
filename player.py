@@ -17,11 +17,10 @@ class Player:
         self.player_id = player_id
         self.hand = Hand(hand)
         self.money = 1_000
-        self.total_contribution = 0
+        self.total_bet = 0
         self.last_action = None
         self.bets = []
         self.actions = []
-        self.contributions = []
         self.experience_buffer = []
 
         input_dim = 52 * (2 + 5) + 1
@@ -56,7 +55,7 @@ class Player:
         return action, value.item()
 
     def act(self, current_bet, max_bet, community_cards, pot, epsilon=0.0):
-        contribution = 0
+        bet = 0
         observation = self.get_observation(community_cards, pot)
         observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
 
@@ -76,36 +75,36 @@ class Player:
         action = ACTION(action_index)
 
         if action == ACTION.FOLD or self.last_action == ACTION.FOLD or (
-                self.money == 0 and self.total_contribution == 0):
+                self.money == 0 and self.total_bet == 0):
             action = ACTION.FOLD
-        elif self.total_contribution >= max_bet:
+        elif self.total_bet >= max_bet:
             action = ACTION.CHECK
         elif current_bet == 0:
             action = ACTION.RAISE
-            contribution = 1
+            bet = 1
         elif current_bet >= max_bet:
             action = ACTION.CALL
-            contribution = current_bet - self.total_contribution
+            bet = current_bet - self.total_bet
         else:
             is_learned_experience = True
 
             if action == ACTION.RAISE:
                 raise_amount = self.raise_amount_network(observation_tensor).item()
-                contribution = min(current_bet - self.total_contribution + raise_amount, self.money, max_bet)
+                bet = min(current_bet - self.total_bet + raise_amount, self.money, max_bet)
             elif action == ACTION.CALL:
-                contribution = current_bet - self.total_contribution
+                bet = current_bet - self.total_bet
 
-        self.money -= contribution
-        self.total_contribution += contribution
+        self.money -= bet
+        self.total_bet += bet
         self.last_action = action
-        self.bets.append(contribution)
+        self.bets.append(bet)
         self.actions.append(action)
-        self.contributions.append(contribution)
+        self.bets.append(bet)
 
         if is_learned_experience:
-            self.experience_buffer.append((observation, action, value, contribution))
+            self.experience_buffer.append((observation, action, value, bet))
 
-        return action, value.item(), contribution
+        return action, value.item(), bet
 
     def train(self, win_outcome, gamma=0.99):
         """Train the policy, value, and raise amount networks based on win/loss outcome."""
@@ -113,7 +112,7 @@ class Player:
             return
 
         G = win_outcome  # Set G to 1 if win, 0 if lose
-        for observation, action, _, contribution in reversed(self.experience_buffer):
+        for observation, action, _, bet in reversed(self.experience_buffer):
             observation_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
             action_tensor = torch.tensor(action.value, dtype=torch.long).unsqueeze(0)
             reward_tensor = torch.tensor([G], dtype=torch.float32).unsqueeze(0)
@@ -143,7 +142,7 @@ class Player:
             # Train raise_amount_network if action was RAISE
             if action == ACTION.RAISE:
                 predicted_raise = self.raise_amount_network(observation_tensor)
-                actual_raise_tensor = torch.tensor([contribution], dtype=torch.float32)  # True raise amount
+                actual_raise_tensor = torch.tensor([bet], dtype=torch.float32)  # True raise amount
                 raise_amount_loss = F.mse_loss(predicted_raise, actual_raise_tensor)
 
                 self.raise_amount_optimizer.zero_grad()
@@ -157,11 +156,10 @@ class Player:
         self.experience_buffer = []
 
     def prepare_for_round(self):
-        self.total_contribution = 0
+        self.total_bet = 0
         self.last_action = None
         self.bets = []
         self.actions = []
-        self.contributions = []
         self.experience_buffer = []
 
     def get_valid_actions(self, current_bet, max_bet):
@@ -170,14 +168,14 @@ class Player:
             valid_actions[:] = False
             valid_actions[ACTION.FOLD.value] = True
             return valid_actions
-        if self.total_contribution == max_bet:
+        if self.total_bet == max_bet:
             valid_actions[:] = False
             valid_actions[ACTION.CHECK.value] = True
             valid_actions[ACTION.FOLD.value] = True
             return valid_actions
         if current_bet == 0:
             valid_actions[ACTION.RAISE.value] = True
-        if current_bet > 0 and current_bet > self.total_contribution:
+        if current_bet > 0 and current_bet > self.total_bet:
             valid_actions[ACTION.CALL.value] = True
         if self.money > current_bet:
             valid_actions[ACTION.RAISE.value] = True

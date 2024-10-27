@@ -23,9 +23,9 @@ class Env:
         while max_bet_for_round > 0 and not self.round_finished(current_bet):
             for player in self.players:
                 if player.last_action != ACTION.FOLD:
-                    action, _, contribution = player.act(current_bet, max_bet_for_round, self.community_cards, self.pot)
-                    self.pot += contribution
-                    current_bet = max(current_bet, player.total_contribution)
+                    action, _, bet = player.act(current_bet, max_bet_for_round, self.community_cards, self.pot)
+                    self.pot += bet
+                    current_bet = max(current_bet, player.total_bet)
                     if action == ACTION.FOLD and self.all_but_one_folded():
                         break
         winners = []
@@ -40,14 +40,14 @@ class Env:
             winner[0].money += self.pot / len(winners)
 
         for player in self.players:
-            print('bbbbb', self.pot, player.player_id, player.money, player.actions, player.contributions, sum(player.contributions))
+            print('bbbbb', self.pot, player.player_id, player.money, player.actions, player.bets, sum(player.bets))
 
     # We consider round finished when all players that didn't fold contributed amount equal to current_bet
     def round_finished(self, current_bet):
         if self.all_but_one_folded():
             return True
         for player in self.players:
-            if player.last_action != ACTION.FOLD and player.total_contribution < current_bet:
+            if player.last_action != ACTION.FOLD and player.total_bet < current_bet:
                 return False
         return current_bet > 0
 

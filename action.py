@@ -25,6 +25,6 @@ class ACTION(Enum):
 
 
 class ActionResult:
-    def __init__(self, action, contribution):
+    def __init__(self, action, bet):
         self.action = action
-        self.contribution = contribution
+        self.bet = bet

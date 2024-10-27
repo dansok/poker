@@ -23,8 +23,8 @@ class RandomEnv:
             for player in self.players:
                 if player.last_action != ACTION.FOLD:
                     action_result = player.act(current_bet, max_bet_for_round)
-                    self.pot += action_result.contribution
-                    current_bet = max(current_bet, player.total_contribution)
+                    self.pot += action_result.bet
+                    current_bet = max(current_bet, player.total_bet)
                     if action_result.action == ACTION.FOLD and self.all_but_one_folded():
                         break
         winners = []
@@ -39,14 +39,14 @@ class RandomEnv:
             winner[0].money += self.pot / len(winners)
 
         # for player in self.players:
-        #     print('bbbbb', self.pot, player.player_id, player.money, player.actions, player.contributions, sum(player.contributions))
+        #     print('bbbbb', self.pot, player.player_id, player.money, player.actions, player.bets, sum(player.bets))
 
     # We consider round finished when all players that didn't fold contributed amount equal to current_bet
     def round_finished(self, current_bet):
         if self.all_but_one_folded():
             return True
         for player in self.players:
-            if player.last_action != ACTION.FOLD and player.total_contribution < current_bet:
+            if player.last_action != ACTION.FOLD and player.total_bet < current_bet:
                 return False
         return current_bet > 0
 
