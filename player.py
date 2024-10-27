@@ -63,6 +63,8 @@ class Player:
         action_probabilities = self.policy_network(observation_tensor)
         value = self.value_network(observation_tensor)
 
+        is_learned_experience: bool = False
+
         if np.random.rand() < epsilon:
             action_index = np.random.choice(len(ACTION))
         else:
@@ -85,6 +87,8 @@ class Player:
             action = ACTION.CALL
             contribution = current_bet - self.total_contribution
         else:
+            is_learned_experience = True
+
             if action == ACTION.RAISE:
                 raise_amount = self.raise_amount_network(observation_tensor).item()
                 contribution = min(current_bet - self.total_contribution + raise_amount, self.money, max_bet)
@@ -98,7 +102,7 @@ class Player:
         self.actions.append(action)
         self.contributions.append(contribution)
 
-        if action == ACTION(action_index):
+        if is_learned_experience:
             self.experience_buffer.append((observation, action, value, contribution))
 
         return action, value.item(), contribution
