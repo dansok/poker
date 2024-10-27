@@ -2,6 +2,7 @@ from card import Card
 from deck import Deck
 from action import ACTION
 from player import Player
+from random_player import RandomPlayer
 
 
 class Env:
@@ -39,8 +40,8 @@ class Env:
         for winner in winners:
             winner[0].money += self.pot / len(winners)
 
-        for player in self.players:
-            print('bbbbb', self.pot, player.player_id, player.money, player.actions, player.bets, sum(player.bets))
+        # for player in self.players:
+        #     print('bbbbb', self.pot, player.player_id, player.money, player.actions, player.bets, sum(player.bets))
 
     # We consider round finished when all players that didn't fold contributed amount equal to current_bet
     def round_finished(self, current_bet):
@@ -80,7 +81,8 @@ class Env:
             self.play_round()
             for i, player in enumerate(self.players):
                 profit = player.money - money_before_round[i]
-                player.train(profit)
+                if i == 0:
+                    player.train(profit)
 
             # print(f'state as of the end of round {_}')
             # self.render()
@@ -99,7 +101,7 @@ class Env:
 
     def reset(self):
         self.deck = Deck()
-        self.players = [Player(i, [self.deck.draw(), self.deck.draw()]) for i in range(5)]
+        self.players = [Player(0, [self.deck.draw(), self.deck.draw()]), *[RandomPlayer(i, [self.deck.draw(), self.deck.draw()]) for i in range(1, 5)]]
         self.community_cards = [self.deck.draw(),
                                 self.deck.draw()]  # third card will be appended at the beginning of the first round
         self.pot = 0

@@ -24,9 +24,9 @@ class Player:
         self.experience_buffer = []
 
         input_dim = 52 * (2 + 5) + 1
-        self.policy_network = PolicyNetwork(input_dim, 256, 128, 64, len(ACTION))
-        self.value_network = ValueNetwork(input_dim, 256, 128, 64)
-        self.raise_amount_network = RaiseAmountNetwork(input_dim, hidden_dim=128)
+        self.policy_network = PolicyNetwork(input_dim, 512, 256, 128, 64, len(ACTION))
+        self.value_network = ValueNetwork(input_dim, 512, 256, 128, 64)
+        self.raise_amount_network = RaiseAmountNetwork(input_dim, 256, 128)
 
         self.policy_optimizer = optim.Adam(self.policy_network.parameters(), lr=0.001)
         self.value_optimizer = optim.Adam(self.value_network.parameters(), lr=0.001)

@@ -20,14 +20,15 @@ class RandomPlayer:
 
     # current_bet is the current bet for the round
     # max_bet is maximal allowed bet for the round
-    def act(self, current_bet, max_bet):
+    def act(self, current_bet, max_bet, _, _1):
         bet = 0
         if self.last_action == ACTION.FOLD or (self.money == 0 and self.total_bet == 0):
             action = ACTION.FOLD
         elif self.total_bet == max_bet:
             action = ACTION.CHECK
         elif current_bet == 0:
-            action = ACTION.BLIND
+            action = ACTION.RAISE
+            bet = 1
         elif current_bet == max_bet:
             action = ACTION.CALL
         else:
@@ -38,9 +39,6 @@ class RandomPlayer:
 
         if current_bet == max_bet:
             action = ACTION.CALL
-
-        if action == ACTION.BLIND:
-            bet = 1
 
         if action == ACTION.RAISE:
             # target_bet = random.randint(current_bet + 1, max_bet)
@@ -56,7 +54,7 @@ class RandomPlayer:
         self.bets.append(bet)
         self.actions.append(action)
         self.bets.append(bet)
-        return ActionResult(action, bet)
+        return action, 0, bet
 
     def prepare_for_round(self):
         self.total_bet = 0
