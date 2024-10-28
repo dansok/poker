@@ -16,7 +16,8 @@ class PolicyNetwork(nn.Module):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         x = torch.relu(self.fc3(x))
-        x = self.fc4(x)
+        x = torch.relu(self.fc4(x))
+        x = self.fc5(x)
         return self.softmax(x)
 
 
@@ -27,13 +28,14 @@ class ValueNetwork(nn.Module):
         self.fc2 = nn.Linear(hidden_dim_1, hidden_dim_2)
         self.fc3 = nn.Linear(hidden_dim_2, hidden_dim_3)
         self.fc4 = nn.Linear(hidden_dim_3, hidden_dim_4)
-        self.fc5 = nn.Linear(hidden_dim_3, 1)  # Single value output
+        self.fc5 = nn.Linear(hidden_dim_4, 1)  # Single value output
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         x = torch.relu(self.fc3(x))
-        x = self.fc4(x)
+        x = torch.relu(self.fc4(x))
+        x = self.fc5(x)
         return torch.sigmoid(x)
 
 
@@ -42,10 +44,11 @@ class RaiseAmountNetwork(nn.Module):
         super(RaiseAmountNetwork, self).__init__()
         self.fc1 = nn.Linear(input_dim, hidden_dim_1)
         self.fc2 = nn.Linear(hidden_dim_1, hidden_dim_2)
-        self.fc2 = nn.Linear(hidden_dim_2, hidden_dim_2 // 2)
-        self.fc3 = nn.Linear(hidden_dim_2 // 2, 1)  # Single output for raise amount
+        self.fc3 = nn.Linear(hidden_dim_2, hidden_dim_2 // 2)
+        self.fc4 = nn.Linear(hidden_dim_2 // 2, 1)  # Single output for raise amount
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
-        return torch.relu(self.fc3(x))  # Positive output for raise amount
+        x = torch.relu(self.fc3(x))
+        return torch.relu(self.fc4(x))  # Positive output for raise amount
