@@ -67,9 +67,25 @@ class Player:
         if np.random.rand() < epsilon:
             action_index = np.random.choice(len(ACTION))
         else:
-            valid_actions = self.get_valid_actions(current_bet, max_bet)
+            # Ensure valid_actions is a PyTorch boolean tensor
+            valid_actions = torch.tensor(self.get_valid_actions(current_bet, max_bet)).to(torch.bool)
+
+            # Check for NaN or inf in the original action probabilities
+            if torch.isnan(action_probabilities).any() or torch.isinf(action_probabilities).any():
+                raise ValueError("action_probabilities contains NaN or inf values before masking.")
+
             masked_action_probabilities = action_probabilities.clone()
             masked_action_probabilities[0, ~valid_actions] = -float('inf')
+
+            # Check if all actions are masked
+            if not valid_actions.any():
+                raise ValueError("No valid actions available; all actions are masked.")
+
+            # Check for NaN or inf after masking
+            if torch.isnan(masked_action_probabilities).any() or torch.isinf(masked_action_probabilities).any():
+                raise ValueError("masked_action_probabilities contains NaN or inf values after masking.")
+
+            # Sample an action based on the softmax probabilities
             action_index = torch.multinomial(torch.softmax(masked_action_probabilities, dim=-1)[0], 1).item()
 
         action = ACTION(action_index)
@@ -143,6 +159,12 @@ class Player:
             if action == ACTION.RAISE:
                 predicted_raise = self.raise_amount_network(observation_tensor)
                 actual_raise_tensor = torch.tensor([bet], dtype=torch.float32)  # True raise amount
+
+                # Ensure both tensors have matching shapes
+                predicted_raise = predicted_raise.view(1)
+                actual_raise_tensor = actual_raise_tensor.view(1)
+
+                # Compute MSE loss
                 raise_amount_loss = F.mse_loss(predicted_raise, actual_raise_tensor)
 
                 self.raise_amount_optimizer.zero_grad()
